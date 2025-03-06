@@ -1,0 +1,67 @@
+Depuração de consultas no Bitrix24 BI Connector
+Ana Laura L. 
+Autor: Ana Laura L.
+Última atualização: 27 de abril de 2023
+A depuração de consultas trata de localizar e corrigir erros e lógica subótima em consultas de recuperação de dados. Se seus relatórios forem lentos ou contiverem dados inválidos, a depuração poderá ajudá-lo a localizar e corrigir os erros.
+
+Exemplo: você tem um relatório de negócios, mas alguns dos campos não carregam ou contêm informações incorretas. Nesse caso, você pode executar uma consulta e ver que tipo de dados está sendo passado para os sistemas analíticos. Isso ajudará você a encontrar o problema e fazer alterações na consulta para exibir os dados corretamente no relatório.
+Conteúdo do artigo:
+
+Executar uma consulta ao BI Connector usando um navegador
+Executar uma consulta ao BI Connector usando Postman
+Testar consultas antes de criar um relatório
+
+Executar uma consulta ao BI Connector usando um navegador
+Para fazê-lo, use o link:
+
+https://nome_da_sua_conta.bitrix24.com.br/bitrix/tools/biconnector/pbi.php?token=chave_do_bi_connector&table=crm_deal
+exemplo
+1. – Especifique o nome da sua conta do Bitrix24.
+
+2. – Para visualizar os dados da interface do Microsoft Power BI, digite pbi.php. Para os dados do Looker Studio, anteriormente conhecido como Google Data Studio, insira gds.php?data&.
+
+3. – Especifique seu token na seção Análise > Análise BI > Gerenciar chaves.
+
+4. – Adicione o elemento cujos dados você deseja obter. Para obter os dados da lista de negócios, use crm_deal.
+Para ler mais detalhadamente, consulte o artigo BI Analytics: descrição dos campos de elementos.[ /n]
+Após a execução da consulta, você verá uma lista de todos os campos e dados do elemento contidos em sua conta. Dessa forma, você poderá entender quais campos você possui e quais informações estão neles.
+
+resultado
+
+Executar uma consulta ao BI Connector usando Postman
+Trabalhar com uma consulta no navegador pode ser inconveniente devido à grande quantidade de dados na tela. Portanto, recomendamos que você experimente o aplicativo Postman.
+
+postman
+Postman é uma ferramenta de API que permite enviar consultas a serviços e trabalhar com suas respostas. Leia mais na documentação oficial.
+Para criar uma consulta, clique em Create new collection > Add a request.
+
+add a request
+Em seguida, escolha o método Post > adicione o endereço de consulta https://nome_da_sua_conta.bitrix24.com.br/bitrix/tools/biconnector/pbi.php?table=crm_deal. Especifique a chave no corpo da consulta e clique em Send.
+
+send
+Depois disso, você pode ver a velocidade com que a consulta está sendo executada e quais dados ela contém.
+
+body
+
+Testar consultas antes de criar um relatório
+Antes de criar um relatório e carregar dados de leads, negócios, campos personalizados, etc., recomendamos que você teste as consultas no Postman.
+
+Exemplo: se for preparado um relatório de negócios mensual, pode conter alguns dados adicionais que não são necessários na versão final do relatório. Aplicar os filtros na consulta aumentará a velocidade de carregamento dos dados e o relatório será executado mais rapidamente.
+Para usar determinadas datas e campos no relatório e filtrar negócios por data de criação, use a seguinte consulta:
+
+ "dateRange": { "startDate": "2023-01-22", "endDate": "2023-03-23" }, "configParams": { "timeFilterColumn": "DATE_CREATE" }, "fields": [ { "name": "ID" }, { "name": "DATE_CREATE" }, { "name": "DATE_MODIFY" } ] 
+consulta
+dateRange – neste parâmetro, especifique o período em que os dados são necessários.
+configParams – insira o parâmetro DATE_CREATE para filtrar negócios por data de criação.
+fields – especifique os campos obrigatórios. Podem ser os campos: ID do negócio, data de criação e data de modificação.
+Em seguida, revise os resultados e, se necessário, corrija a consulta.
+
+resultados
+Para limitar a seleção de dados a determinadas linhas ou colunas, você pode adicionar o parâmetro dimentionsFilters à consulta. Por exemplo, para obter informações sobre os negócios 173 e 177, use a seguinte consulta:
+
+ "dimensionsFilters": [ [ { "fieldName": "ID", "values": [173, 177], "type": "INCLUDE", "operator": "EQUALS" } ] ] 
+filtro
+
+Para ler mais sobre dimentionsFilters e outras funções, consulte a documentação Oficial do Looker Studio.
+
+No Looker Studio, os filtros são configurados no lado do serviço no próprio relatório e não precisam ser escritos manualmente. O Microsoft Power BI também oferece suporte a filtros e parâmetros, mas você deve adicioná-los no editor avançado. Para ler mais detalhadamente, consulte o artigo Como filtrar dados de relatório por datas diferentes no Microsoft Power BI.
