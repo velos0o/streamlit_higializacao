@@ -56,13 +56,13 @@ def cabecalho():
 def cartao_metrica(titulo: str, valor: str, icone: str = None, cor: str = CORES["azul_principal"],
                  delta: str = None, help_text: str = None):
     """
-    Renderiza um cartão com métrica estilizado
+    Renderiza um cartão com métrica estilizado em design profissional
     
     Args:
         titulo: Título da métrica
         valor: Valor da métrica
-        icone: Emoji ou ícone para a métrica
-        cor: Cor da borda esquerda do cartão
+        icone: Não utilizado mais (mantido para compatibilidade)
+        cor: Cor de destaque do cartão
         delta: Valor de variação (opcional)
         help_text: Texto de ajuda (opcional)
     """
@@ -82,28 +82,24 @@ def cartao_metrica(titulo: str, valor: str, icone: str = None, cor: str = CORES[
         except:
             pass
     
-    # Ícone HTML
-    icone_html = f'<span style="font-size: 20px;">{icone}</span>' if icone else ''
-    
     # Help tooltip
     tooltip_attr = f'title="{help_text}"' if help_text else ''
     
-    # Cartão HTML
+    # HTML do cartão - estilo profissional com cinza e azul, sem emojis
     html = f"""
-    <div style="background-color: white; padding: 15px; border-radius: 8px; 
-         box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 15px; 
-         border-left: 5px solid {cor};" {tooltip_attr}>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 14px; color: #555;">{titulo}</h3>
-            {icone_html}
+    <div style="background-color: white; padding: 18px 20px; border-radius: 4px; 
+         box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 15px; 
+         border-top: 3px solid {CORES['azul_principal']};" {tooltip_attr}>
+        <div>
+            <h3 style="margin: 0; font-size: 13px; color: {CORES['cinza_escuro']}; font-weight: 500; letter-spacing: 0.3px;">{titulo.upper()}</h3>
         </div>
-        <h2 style="margin: 10px 0; font-size: 28px; font-weight: 600;">{valor}</h2>
+        <h2 style="margin: 10px 0 5px 0; font-size: 26px; font-weight: 600; color: {CORES['azul_principal']};">{valor}</h2>
         
-        {'' if not delta else f'<p style="margin: 0; color: {delta_color}; font-size: 14px; font-weight: 500;">{delta_arrow} {delta}</p>'}
+        {f'<p style="margin: 0; color: {delta_color}; font-size: 13px; font-weight: 500;">{delta_arrow} {delta}</p>' if delta else ''}
     </div>
     """
     
-    return st.markdown(html, unsafe_allow_html=True)
+    st.markdown(html, unsafe_allow_html=True)
 
 @contextmanager
 def card_container(titulo: str):
@@ -137,75 +133,148 @@ def card_container(titulo: str):
     
     st.markdown(html_fim, unsafe_allow_html=True)
 
-def formatar_tabela_pendencias(df: pd.DataFrame):
+def formatar_tabela_pendencias(df: pd.DataFrame, mostrar_titulo=False):
     """
-    Formata e exibe uma tabela de pendências
+    Formata e exibe uma tabela de pendências com design profissional
     
     Args:
         df: DataFrame com os dados de pendências
+        mostrar_titulo: Se True, exibe o título da tabela (padrão: False)
     """
-    # Aplicar estilo básico sem destaque colorido
+    # Verificar se é necessário adicionar uma linha de total
+    if "Total" in df.columns and not df.index.isin(["Total"]).any():
+        # Criar uma linha de total
+        total_row = pd.DataFrame(
+            {col: [df[col].sum() if pd.api.types.is_numeric_dtype(df[col]) else "Total"] 
+             for col in df.columns},
+            index=["Total"]
+        )
+        
+        # Adicionar linha de total ao final do DataFrame
+        df = pd.concat([df, total_row])
+    
+    # Estilo profissional com cores cinza e azul
     df_styled = df.style.set_table_styles([
-        {'selector': 'thead th', 'props': f'background-color: {CORES["azul_principal"]}; color: white; padding: 8px 15px;'},
+        # Cabeçalho
+        {'selector': 'thead th', 'props': f'background-color: {CORES["azul_principal"]}; color: white; padding: 12px 15px; font-weight: 500; font-size: 13px; text-align: left;'},
+        # Linhas alternadas
         {'selector': 'tbody tr:nth-child(even)', 'props': f'background-color: {CORES["cinza_claro"]};'},
-        {'selector': 'tbody td', 'props': 'padding: 8px 15px;'}
+        # Todas as células
+        {'selector': 'tbody td', 'props': f'padding: 10px 15px; border-bottom: 1px solid {CORES["cinza_medio"]}; font-size: 13px;'},
+        # Linha de total
+        {'selector': 'tbody tr:last-child', 'props': f'background-color: {CORES["cinza_medio"]}; font-weight: bold;'}
     ])
     
-    # Exibir o dataframe estilizado com título explícito
-    st.subheader("Tabela de Pendências por Responsável")
-    st.dataframe(df_styled, use_container_width=True, hide_index=True)
+    # Destacar a linha de total com negrito para os valores numéricos
+    if "Total" in df.index:
+        for col in df.columns:
+            if pd.api.types.is_numeric_dtype(df[col]) and col != "Total":
+                df_styled = df_styled.apply(lambda x: ['font-weight: bold' if idx == 'Total' else '' for idx in x.index], axis=0, subset=[col])
+    
+    # Exibir o título apenas se solicitado
+    if mostrar_titulo:
+        st.subheader("Tabela de Pendências por Responsável")
+        
+    # Exibir o dataframe estilizado
+    st.dataframe(df_styled, use_container_width=True, hide_index=False)
     return None
 
-def formatar_tabela_status(df: pd.DataFrame):
+def formatar_tabela_status(df: pd.DataFrame, mostrar_titulo=False):
     """
-    Formata e exibe uma tabela de status
+    Formata e exibe uma tabela de status com design profissional
     
     Args:
         df: DataFrame com os dados de status
+        mostrar_titulo: Se True, exibe o título da tabela (padrão: False)
     """
-    # Função para formatar células com status
-    def formatar_status(val, col):
-        if col == "% Concluído":
-            return f"{val:.1f}%"
-        return val
+    # Verificar se é necessário adicionar uma linha de total
+    if "Total" in df.columns and not df.index.isin(["Total"]).any():
+        # Criar uma linha de total
+        total_row = pd.DataFrame(
+            {col: [df[col].sum() if pd.api.types.is_numeric_dtype(df[col]) else "Total"] 
+             for col in df.columns},
+            index=["Total"]
+        )
+        
+        # Adicionar linha de total ao final do DataFrame
+        df = pd.concat([df, total_row])
     
-    # Aplicar estilo básico sem destaque colorido
+    # Estilo profissional com cores cinza e azul
     df_styled = df.style.set_table_styles([
-        {'selector': 'thead th', 'props': f'background-color: {CORES["azul_principal"]}; color: white; padding: 8px 15px;'},
+        # Cabeçalho
+        {'selector': 'thead th', 'props': f'background-color: {CORES["azul_principal"]}; color: white; padding: 12px 15px; font-weight: 500; font-size: 13px; text-align: left;'},
+        # Linhas alternadas
         {'selector': 'tbody tr:nth-child(even)', 'props': f'background-color: {CORES["cinza_claro"]};'},
-        {'selector': 'tbody td', 'props': 'padding: 8px 15px;'}
+        # Todas as células
+        {'selector': 'tbody td', 'props': f'padding: 10px 15px; border-bottom: 1px solid {CORES["cinza_medio"]}; font-size: 13px;'},
+        # Linha de total
+        {'selector': 'tbody tr:last-child', 'props': f'background-color: {CORES["cinza_medio"]}; font-weight: bold;'}
     ])
     
-    # Manter apenas a formatação de percentual sem cores
+    # Manter apenas a formatação de percentual
     if "% Concluído" in df.columns:
-        df_styled = df_styled.format({"% Concluído": "{:.1f}%"})
+        df_styled = df_styled.format({
+            "% Concluído": lambda x: f"{x:.1f}%"
+        })
     
-    # Exibir o dataframe estilizado com título explícito
-    st.subheader("Status da Higienização por Responsável")
-    st.dataframe(df_styled, use_container_width=True, hide_index=True)
+    # Destacar a linha de total com negrito para os valores numéricos
+    if "Total" in df.index:
+        for col in df.columns:
+            if pd.api.types.is_numeric_dtype(df[col]) and col != "Total":
+                df_styled = df_styled.apply(lambda x: ['font-weight: bold' if idx == 'Total' else '' for idx in x.index], axis=0, subset=[col])
+    
+    # Exibir o título apenas se solicitado
+    if mostrar_titulo:
+        st.subheader("Status da Higienização por Responsável")
+        
+    # Exibir o dataframe estilizado
+    st.dataframe(df_styled, use_container_width=True, hide_index=False)
     return None
 
-def formatar_tabela_produtividade(df: pd.DataFrame):
+def formatar_tabela_produtividade(df: pd.DataFrame, mostrar_titulo=False):
     """
-    Formata e exibe uma tabela de produtividade
+    Formata e exibe uma tabela de produtividade com design profissional
     
     Args:
         df: DataFrame com os dados de produtividade
+        mostrar_titulo: Se True, exibe o título da tabela (padrão: False)
     """
-    # Aplicar estilo básico sem destaque colorido
+    # Verificar se é necessário adicionar uma linha de total
+    if "Total" in df.columns and not df.index.isin(["Total"]).any():
+        # Criar uma linha de total
+        total_row = pd.DataFrame(
+            {col: [df[col].sum() if pd.api.types.is_numeric_dtype(df[col]) else "Total"] 
+             for col in df.columns},
+            index=["Total"]
+        )
+        
+        # Adicionar linha de total ao final do DataFrame
+        df = pd.concat([df, total_row])
+    
+    # Estilo profissional com cores cinza e azul
     df_styled = df.style.set_table_styles([
-        {'selector': 'thead th', 'props': f'background-color: {CORES["azul_principal"]}; color: white; padding: 8px 15px;'},
+        # Cabeçalho
+        {'selector': 'thead th', 'props': f'background-color: {CORES["azul_principal"]}; color: white; padding: 12px 15px; font-weight: 500; font-size: 13px; text-align: left;'},
+        # Linhas alternadas
         {'selector': 'tbody tr:nth-child(even)', 'props': f'background-color: {CORES["cinza_claro"]};'},
-        {'selector': 'tbody td', 'props': 'padding: 8px 15px;'}
+        # Todas as células
+        {'selector': 'tbody td', 'props': f'padding: 10px 15px; border-bottom: 1px solid {CORES["cinza_medio"]}; font-size: 13px;'},
+        # Linha de total
+        {'selector': 'tbody tr:last-child', 'props': f'background-color: {CORES["cinza_medio"]}; font-weight: bold;'}
     ])
     
-    # Formatar a coluna de percentual
-    if "% Produtividade" in df.columns:
-        df_styled = df_styled.format({"% Produtividade": "{:.1f}%"})
+    # Destacar a linha de total com negrito para os valores numéricos
+    if "Total" in df.index:
+        for col in df.columns:
+            if pd.api.types.is_numeric_dtype(df[col]) and col != "Total":
+                df_styled = df_styled.apply(lambda x: ['font-weight: bold' if idx == 'Total' else '' for idx in x.index], axis=0, subset=[col])
     
-    # Exibir o dataframe estilizado com título explícito
-    st.subheader("Tabela de Produtividade por Responsável")
-    st.dataframe(df_styled, use_container_width=True, hide_index=True)
+    # Exibir o título apenas se solicitado
+    if mostrar_titulo:
+        st.subheader("Tabela de Produtividade por Responsável")
+        
+    # Exibir o dataframe estilizado
+    st.dataframe(df_styled, use_container_width=True, hide_index=False)
     return None
 
 def criar_filtro_responsaveis(df: pd.DataFrame, key: str = "filtro_responsaveis"):

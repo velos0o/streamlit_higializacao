@@ -50,6 +50,56 @@ def aplicar_estilo():
                 margin: 0 auto;
             }}
             
+            /* Estilo do menu horizontal */
+            div[data-testid="stHorizontalBlock"] {{
+                background: white;
+                padding: 1rem;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                margin-bottom: 1.5rem;
+            }}
+            
+            /* Estilo dos botões do menu */
+            div[data-testid="stHorizontalBlock"] .stRadio {{
+                display: flex;
+                gap: 2rem;
+                justify-content: center;
+            }}
+            
+            div[data-testid="stHorizontalBlock"] .stRadio > label {{
+                background: #f8f9fa;
+                padding: 0.8rem 1.5rem;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                border: 1px solid #e9ecef;
+            }}
+            
+            div[data-testid="stHorizontalBlock"] .stRadio > label:hover {{
+                background: #e9ecef;
+                transform: translateY(-2px);
+            }}
+            
+            div[data-testid="stHorizontalBlock"] .stRadio input:checked + label {{
+                background: #0083B8;
+                color: white;
+                border-color: #0083B8;
+            }}
+            
+            /* Ocultar o círculo do radio button */
+            div[data-testid="stHorizontalBlock"] .stRadio input {{
+                display: none;
+            }}
+            
+            /* Estilo da tabela */
+            .dataframe {{
+                width: 100%;
+                margin-top: 1rem;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }}
+            
             /* Cabeçalho */
             .header-container {{
                 display: flex;
@@ -105,11 +155,6 @@ def aplicar_estilo():
             }}
             
             /* Tabelas */
-            .dataframe {{
-                width: 100%;
-                border-collapse: collapse;
-            }}
-            
             .dataframe th {{
                 background-color: {CORES['azul_principal']};
                 color: white;
@@ -166,210 +211,139 @@ def aplicar_estilo():
 # Inicializar serviço do Bitrix
 service = BitrixService()
 
-# Função para mostrar tela de diagnóstico
-def mostrar_diagnostico():
-    """Exibe informações de diagnóstico para ajudar na resolução de problemas."""
-    st.header("Diagnóstico")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Informações do Sistema")
-        st.markdown(f"""
-        - **Data e Hora**: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}
-        - **Versão do Streamlit**: {st.__version__}
-        - **Versão do Python**: {platform.python_version()}
-        - **Sistema Operacional**: {platform.system()} {platform.version()}
-        """)
-        
-    with col2:
-        st.subheader("Configurações")
-        st.markdown(f"""
-        - **URL Base do Bitrix24**: {service.BITRIX_BASE_URL}
-        - **Token Configurado**: {'Sim' if service.BITRIX_TOKEN else 'Não'}
-        - **ID da Categoria**: {CATEGORY_ID}
-        - **Cache Ativo**: {'Sim' if 'get_negocios' in st.session_state else 'Não'}
-        """)
-    
-    # Teste de Conexão
-    st.subheader("Teste de Conexão")
-    
-    if st.button("Testar Conexão com Bitrix24"):
-        with st.spinner("Testando conexão..."):
-            resultado = service.testar_conexao()
-        
-        if resultado["sucesso"]:
-            st.success(f"✅ {resultado['mensagem']}")
-        else:
-            st.error(f"❌ {resultado['mensagem']}")
-        
-        with st.expander("Detalhes Técnicos"):
-            st.json(resultado["detalhes"])
-    
-    # Debug Logs
-    st.subheader("Log de Depuração")
-    
-    # Verificar se há logs de debug
-    if 'bitrix_debug' in st.session_state and st.session_state['bitrix_debug']:
-        st.write(f"Número de tentativas registradas: {len(st.session_state['bitrix_debug'])}")
-        
-        # Criar tabs para cada log de debug, em vez de expanders aninhados
-        tab_titles = [f"Tentativa {i+1} - {debug_info.get('timestamp', 'N/A')}" 
-                      for i, debug_info in enumerate(st.session_state['bitrix_debug'])]
-        
-        # Usar tabs em vez de expanders aninhados
-        tabs = st.tabs(tab_titles)
-        
-        for i, (tab, debug_info) in enumerate(zip(tabs, st.session_state['bitrix_debug'])):
-            with tab:
-                # Status da tentativa
-                if debug_info.get("sucesso", False):
-                    st.success("Operação bem-sucedida")
-                else:
-                    st.error(f"Falha: {debug_info.get('mensagem', 'Erro desconhecido')}")
-                
-                # Informações detalhadas em formato de tabela
-                dados = []
-                for chave, valor in debug_info.items():
-                    if chave not in ['detalhes', 'sucesso', 'mensagem'] and valor is not None:
-                        dados.append({"Propriedade": chave, "Valor": str(valor)})
-                
-                if dados:
-                    st.write("Informações da Requisição:")
-                    st.table(dados)
-                
-                # Mostrar detalhes adicionais se existirem
-                if 'detalhes' in debug_info and debug_info['detalhes']:
-                    st.write("Detalhes Técnicos:")
-                    st.json(debug_info['detalhes'])
-    else:
-        st.info("Nenhum log de depuração disponível. Tente carregar dados primeiro.")
-    
-    # Botões de manutenção
-    st.subheader("Manutenção")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("Alterar ID da Categoria"):
-            st.session_state["mostrar_config_categoria"] = True
-            st.rerun()
-    
-    with col2:
-        if st.button("Limpar Cache e Logs"):
-            # Limpar o cache do Streamlit
-            st.cache_data.clear()
-            
-            # Limpar variáveis de sessão
-            if 'bitrix_debug' in st.session_state:
-                st.session_state['bitrix_debug'] = []
-            
-            if 'get_negocios' in st.session_state:
-                del st.session_state['get_negocios']
-                
-            st.success("Cache e logs limpos com sucesso!")
-            time.sleep(1)
-            st.rerun()
-
 # Função para configurar o ID da categoria
 def configurar_categoria():
-    """Função para configurar o ID da categoria no arquivo settings.py"""
-    st.title("Configuração da Categoria do Bitrix24")
+    """Função para configurar o ID da categoria no arquivo settings.py e mostrar diagnóstico"""
+    st.title("Configurações do Dashboard")
     
-    # Exibir o valor atual
-    st.write(f"O ID da categoria atual é: **{CATEGORY_ID}**")
+    # Usar tabs para separar configuração e diagnóstico
+    tab1, tab2 = st.tabs(["Configuração de Categoria", "Diagnóstico"])
     
-    # Explicação
-    st.write("""
-    ## Como obter o ID da categoria no Bitrix24
+    with tab1:
+        # Exibir o valor atual
+        st.write(f"O ID da categoria atual é: **{CATEGORY_ID}**")
+        
+        # Explicação
+        st.write("""
+        ## Como obter o ID da categoria no Bitrix24
+        
+        1. Acesse o Bitrix24 e vá para o módulo CRM
+        2. Clique em "Negócios" e selecione a categoria desejada
+        3. Observe a URL no navegador, o ID da categoria aparece após "CATEGORY_ID="
+        4. Por exemplo, na URL ".../crm/deal/category/32/", o ID da categoria é 32
+        """)
+        
+        # Entrada para o novo valor
+        novo_id = st.number_input(
+            "Digite o ID da categoria:",
+            min_value=0,
+            value=CATEGORY_ID,
+            step=1,
+            format="%d"
+        )
+        
+        # Botões de ação
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("Salvar", type="primary"):
+                # Atualizar o arquivo settings.py
+                try:
+                    # Ler o arquivo
+                    with open("config/settings.py", "r") as f:
+                        content = f.read()
+                    
+                    # Atualizar o valor da categoria
+                    import re
+                    content = re.sub(
+                        r'CATEGORY_ID\s*=\s*\d+',
+                        f'CATEGORY_ID = {novo_id}',
+                        content
+                    )
+                    
+                    # Atualizar o valor de verificação
+                    content = re.sub(
+                        r'CONFIG_VERIFICADA\s*=\s*(True|False)',
+                        'CONFIG_VERIFICADA = True',
+                        content
+                    )
+                    
+                    # Escrever de volta no arquivo
+                    with open("config/settings.py", "w") as f:
+                        f.write(content)
+                    
+                    # Feedback
+                    st.success(f"ID da categoria atualizado para {novo_id} com sucesso!")
+                    time.sleep(2)
+                    
+                    # Recarregar a página
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Erro ao atualizar o arquivo: {str(e)}")
+        
+        with col2:
+            if st.button("Pular Verificação"):
+                # Apenas marcar como verificado sem alterar o ID
+                try:
+                    # Ler o arquivo
+                    with open("config/settings.py", "r") as f:
+                        content = f.read()
+                    
+                    # Atualizar o valor de verificação
+                    content = re.sub(
+                        r'CONFIG_VERIFICADA\s*=\s*(True|False)',
+                        'CONFIG_VERIFICADA = True',
+                        content
+                    )
+                    
+                    # Escrever de volta no arquivo
+                    with open("config/settings.py", "w") as f:
+                        f.write(content)
+                    
+                    # Feedback
+                    st.success("Verificação concluída com sucesso!")
+                    time.sleep(2)
+                    
+                    # Recarregar a página
+                    st.rerun()
+                    
+                except Exception as e:
+                    st.error(f"Erro ao atualizar o arquivo: {str(e)}")
+        
+        # Botão para voltar
+        if st.button("Voltar para o Dashboard"):
+            st.rerun()
     
-    1. Acesse o Bitrix24 e vá para o módulo CRM
-    2. Clique em "Negócios" e selecione a categoria desejada
-    3. Observe a URL no navegador, o ID da categoria aparece após "CATEGORY_ID="
-    4. Por exemplo, na URL ".../crm/deal/category/32/", o ID da categoria é 32
-    """)
-    
-    # Entrada para o novo valor
-    novo_id = st.number_input(
-        "Digite o ID da categoria:",
-        min_value=0,
-        value=CATEGORY_ID,
-        step=1,
-        format="%d"
-    )
-    
-    # Botões de ação
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("Salvar", type="primary"):
-            # Atualizar o arquivo settings.py
-            try:
-                # Ler o arquivo
-                with open("config/settings.py", "r") as f:
-                    content = f.read()
-                
-                # Atualizar o valor da categoria
-                import re
-                content = re.sub(
-                    r'CATEGORY_ID\s*=\s*\d+',
-                    f'CATEGORY_ID = {novo_id}',
-                    content
-                )
-                
-                # Atualizar o valor de verificação
-                content = re.sub(
-                    r'CONFIG_VERIFICADA\s*=\s*(True|False)',
-                    'CONFIG_VERIFICADA = True',
-                    content
-                )
-                
-                # Escrever de volta no arquivo
-                with open("config/settings.py", "w") as f:
-                    f.write(content)
-                
-                # Feedback
-                st.success(f"ID da categoria atualizado para {novo_id} com sucesso!")
-                time.sleep(2)
-                
-                # Recarregar a página
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Erro ao atualizar o arquivo: {str(e)}")
-    
-    with col2:
-        if st.button("Pular Verificação"):
-            # Apenas marcar como verificado sem alterar o ID
-            try:
-                # Ler o arquivo
-                with open("config/settings.py", "r") as f:
-                    content = f.read()
-                
-                # Atualizar o valor de verificação
-                content = re.sub(
-                    r'CONFIG_VERIFICADA\s*=\s*(True|False)',
-                    'CONFIG_VERIFICADA = True',
-                    content
-                )
-                
-                # Escrever de volta no arquivo
-                with open("config/settings.py", "w") as f:
-                    f.write(content)
-                
-                # Feedback
-                st.success("Verificação concluída com sucesso!")
-                time.sleep(2)
-                
-                # Recarregar a página
-                st.rerun()
-                
-            except Exception as e:
-                st.error(f"Erro ao atualizar o arquivo: {str(e)}")
-    
-    # Botão para voltar
-    if st.button("Voltar para o Dashboard"):
-        st.rerun()
+    # Se a opção de diagnóstico estiver habilitada, exiba a tab de diagnóstico
+    with tab2:
+        if st.session_state.get("incluir_diagnostico", False):
+            # Incorporar a função de diagnóstico aqui
+            st.subheader("Diagnóstico do Sistema")
+            st.write("Informações sobre o ambiente e configurações:")
+            
+            # Informações do sistema
+            st.code(f"""
+            Sistema: {platform.system()} {platform.release()}
+            Python: {sys.version}
+            Diretório: {os.getcwd()}
+            """)
+            
+            # Informações do Bitrix
+            st.write("### Configurações do Bitrix24")
+            st.write(f"ID da Categoria: {CATEGORY_ID}")
+            st.write(f"Verificada: {CONFIG_VERIFICADA}")
+            
+            # Logs de depuração
+            if 'bitrix_debug' in st.session_state and st.session_state['bitrix_debug']:
+                st.write("### Logs de Debug")
+                for log in st.session_state['bitrix_debug']:
+                    st.text(log)
+            else:
+                st.info("Nenhum log de debug disponível. Execute uma operação para gerar logs.")
+        
+        # Resetar o estado após mostrar
+        st.session_state["incluir_diagnostico"] = False
 
 # Função principal
 def main():
@@ -394,13 +368,6 @@ def main():
         configurar_categoria()
         # Resetar o estado após mostrar
         st.session_state["mostrar_config_categoria"] = False
-        return
-    
-    # Verificar se deve mostrar a tela de diagnóstico
-    if st.session_state.get("mostrar_diagnostico", False):
-        mostrar_diagnostico()
-        # Resetar o estado após mostrar
-        st.session_state["mostrar_diagnostico"] = False
         return
     
     # Verificar se os dados já foram carregados ou se precisam ser atualizados
@@ -472,39 +439,36 @@ def main():
     with st.sidebar:
         st.subheader("Filtros")
         
-        # Lista de responsáveis específicos a serem exibidos
-        responsaveis_permitidos = [
-            "Stefany Valentin", "Nadya Pedroso", "Nathalia Ferreira", "Fernando Dia", 
-            "Luciano Leitão", "Vitória Cristina", "Marina Marques", "ROBÔ (AUTOMAÇÕES)", 
-            "Natalia Silva", "Iracema Carvalho", "Jhenifer Silva", "Luana Azevedo",
-            "Ester Maria", "Ana Carolina Torres", "GABRIELA LOURENÇO", "Stephany Lopes", 
-            "Milena Agiani", "Lucas Oliveira Da Silva", "Luana Karollyne", "KARINE CAZORLA", 
-            "Jackeline Moreno de Freitas", "Guilherme Dantas Marques", "Gabriela Toledo"
-        ]
+        # Usar todos os responsáveis disponíveis no DataFrame
+        # Nenhum filtro de responsáveis permitidos
+        df_filtrado = df.copy()
         
-        # Filtrar apenas os responsáveis permitidos no DataFrame
-        df_filtrado = df[df["ASSIGNED_BY_NAME"].isin(responsaveis_permitidos)]
-        
-        # Manter o filtro existente para seleção adicional (opcional)
+        # Manter o filtro existente para seleção adicional
         responsaveis_selecionados = criar_filtro_responsaveis(df_filtrado)
+        
+        # Mostrar categoria atual
+        st.info(f"Categoria: {CATEGORY_ID}")
+        
+        # Adicionar um espaçador para empurrar as configurações para baixo
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Link para configurações com senha - movido para baixo
+        st.markdown("---")
+        st.markdown("### Configurações")
+        senha = st.text_input("Senha", type="password")
+        if st.button("Acessar Configurações"):
+            if senha == "BatataFrita":
+                st.session_state["mostrar_config_categoria"] = True
+                # Também incluímos acesso ao diagnóstico na mesma área
+                st.session_state["incluir_diagnostico"] = True
+                st.rerun()
+            else:
+                st.error("Senha incorreta!")
         
         # Botão para atualizar dados
         if st.button("Atualizar Dados"):
             st.session_state['atualizar_dados'] = True
             st.rerun()  # Força rerun do script para atualizar dados
-        
-        # Mostrar categoria atual
-        st.info(f"Categoria: {CATEGORY_ID}")
-        
-        # Link para configurações
-        if st.button("Configurações"):
-            st.session_state["mostrar_config_categoria"] = True
-            st.rerun()
-        
-        # Link para diagnóstico
-        if st.button("Diagnóstico"):
-            st.session_state["mostrar_diagnostico"] = True
-            st.rerun()
     
     # Exibir KPIs
     col1, col2, col3, col4 = st.columns(4)
@@ -512,62 +476,116 @@ def main():
     # Total de registros
     with col1:
         total_registros = len(df_filtrado)
-        cartao_metrica("Total de Registros", f"{total_registros}", icone="📋")
+        cartao_metrica("Total de Registros", f"{total_registros}")
     
     # Total de pendências
     with col2:
         total_pendencias = df_filtrado[df_filtrado["STATUS_CATEGORIA"] == "PENDENCIA"].shape[0]
-        cartao_metrica("Pendências", f"{total_pendencias}", icone="⏳")
+        cartao_metrica("Pendências", f"{total_pendencias}")
     
     # Total em processo
     with col3:
         total_incompleto = df_filtrado[df_filtrado["STATUS_CATEGORIA"] == "INCOMPLETO"].shape[0]
-        cartao_metrica("Incompletos", f"{total_incompleto}", icone="🔄")
+        cartao_metrica("Incompletos", f"{total_incompleto}")
     
     # Total concluídos
     with col4:
         total_completo = df_filtrado[df_filtrado["STATUS_CATEGORIA"] == "COMPLETO"].shape[0]
         perc_completo = (total_completo / total_registros * 100) if total_registros > 0 else 0
-        cartao_metrica("Concluídos", f"{total_completo} ({perc_completo:.1f}%)", icone="✅")
+        cartao_metrica("Concluídos", f"{total_completo} ({perc_completo:.1f}%)")
     
     # Informação sobre registros filtrados vs total
     total_geral = len(df)
     if total_registros != total_geral:
         st.info(f"Exibindo {total_registros} de {total_geral} registros ({(total_registros/total_geral*100):.1f}%)")
     
-    # Exibir tabelas
-    # Primeira tabela: Pendências
+    # Separador antes das tabelas
+    st.markdown("<hr style='margin: 30px 0px; border-top: 1px solid #ddd;'>", unsafe_allow_html=True)
+    
+    # CSS personalizado para o menu lateral e conteúdo
+    st.markdown("""
+    <style>
+        /* Estilo para botões do menu lateral */
+        .menu-lateral .stRadio [role="radiogroup"] {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;  /* Espaçamento aumentado entre itens */
+            margin-top: 20px;
+        }
+        
+        .menu-lateral .stRadio label {
+            background-color: #f5f5f5;
+            border-left: 5px solid transparent;
+            padding: 18px 20px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+        
+        .menu-lateral .stRadio label:hover {
+            background-color: #e8e8e8;
+            cursor: pointer;
+            border-left-color: #b0d0ef;
+            transform: translateX(5px);
+        }
+        
+        .menu-lateral .stRadio [data-baseweb="radio"] input:checked + div + div {
+            background-color: #0063B2;
+            color: white;
+            border-left: 5px solid #003f75;
+            box-shadow: 0 3px 8px rgba(0,99,178,0.2);
+        }
+        
+        /* Esconder o botão de rádio e deixar apenas o texto */
+        .menu-lateral .stRadio [data-baseweb="radio"] div:first-child {
+            display: none !important;
+        }
+        
+        .menu-lateral .stRadio [data-baseweb="radio"] [data-testid="stMarkdownContainer"] {
+            margin-left: 0;
+            padding: 0;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Adicionar título principal de Análise de Dados
+    st.markdown("<h3 style='color: #0063B2; margin-bottom: 20px;'>Análise de Dados por Responsável</h3>", unsafe_allow_html=True)
+    
+    # Preparar todas as tabelas antecipadamente
     try:
         tabela_pendencias = criar_tabela_pendencias(df_filtrado)
-        formatar_tabela_pendencias(tabela_pendencias)
-    except KeyError as e:
-        st.error(f"Erro ao criar tabela de pendências: Coluna {e} não encontrada nos dados. Verifique se os campos personalizados estão configurados corretamente.")
-        # Mostrar as colunas disponíveis para ajudar na depuração
-        st.info(f"Colunas disponíveis: {', '.join(df_filtrado.columns)}")
-    except Exception as e:
-        st.error(f"Erro ao criar tabela de pendências: {str(e)}")
-    
-    # Segunda tabela: Status da Higienização
-    try:
         tabela_status = criar_tabela_status_higienizacao(df_filtrado)
-        formatar_tabela_status(tabela_status)
-    except KeyError as e:
-        st.error(f"Erro ao criar tabela de status: Coluna {e} não encontrada nos dados. Verifique se os campos personalizados estão configurados corretamente.")
-        # Mostrar as colunas disponíveis para ajudar na depuração
-        st.info(f"Colunas disponíveis: {', '.join(df_filtrado.columns)}")
-    except Exception as e:
-        st.error(f"Erro ao criar tabela de status: {str(e)}")
-    
-    # Terceira tabela: Produtividade
-    try:
         tabela_produtividade = criar_tabela_produtividade(df_filtrado)
-        formatar_tabela_produtividade(tabela_produtividade)
+        
+        # Menu horizontal
+        opcao_tabela = st.radio(
+            "",
+            ["Tabela de Pendências", "Status da Higienização", "Tabela de Produtividade"],
+            key="menu_horizontal_analise",
+            label_visibility="collapsed",
+            horizontal=True
+        )
+        
+        # Adicionar um título para a tabela selecionada
+        st.markdown(f"<h4 style='color: #555; margin-bottom: 15px;'>{opcao_tabela}</h4>", unsafe_allow_html=True)
+        
+        # Exibir a tabela selecionada
+        if opcao_tabela == "Tabela de Pendências":
+            formatar_tabela_pendencias(tabela_pendencias, mostrar_titulo=False)
+        elif opcao_tabela == "Status da Higienização":
+            formatar_tabela_status(tabela_status, mostrar_titulo=False)
+        else:  # Tabela de Produtividade
+            formatar_tabela_produtividade(tabela_produtividade, mostrar_titulo=False)
+
     except KeyError as e:
-        st.error(f"Erro ao criar tabela de produtividade: Coluna {e} não encontrada nos dados. Verifique se os campos personalizados estão configurados corretamente.")
+        st.error(f"Erro ao criar tabelas: Coluna {e} não encontrada nos dados. Verifique se os campos personalizados estão configurados corretamente.")
         # Mostrar as colunas disponíveis para ajudar na depuração
         st.info(f"Colunas disponíveis: {', '.join(df_filtrado.columns)}")
     except Exception as e:
-        st.error(f"Erro ao criar tabela de produtividade: {str(e)}")
+        st.error(f"Erro ao criar tabelas: {str(e)}")
     
     # Rodapé
     st.markdown("---")
